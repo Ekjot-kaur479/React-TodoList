@@ -1,27 +1,53 @@
 pipeline {
-    agent {
-        docker {
-            image 'node:18' // This image has node + npm preinstalled
-        }
-    }
+    agent any
+
     stages {
-        stage('Clone Repo') {
+        stage('Clone Repository') {
             steps {
                 git 'https://github.com/Ekjot-kaur479/React-TodoList.git'
             }
         }
-        stage('Install Dependencies') {
+
+        stage('Remove Old Container & Image') {
             steps {
-                sh 'npm install'
+                script {
+                    sh '''
+                    docker stop react-app-container || true
+                    docker rm react-app-container || true
+                    docker rmi todo-list || true
+                    '''
+                }
             }
         }
-        stage('Build Project') {
+
+        stage('Build Docker Image') {
             steps {
-                sh 'npm run build'
+                script {
+                    sh '''
+                    docker build -t todo-list .
+                    '''
+                }
             }
         }
-        // Optional Docker image creation
-        // Add more stages if you want to containerize the app
+
+        stage('Run Docker Container') {
+            steps {
+                script {
+                    sh '''
+                    docker run -d -p 3000:3000 --name react-app-container todo-list
+                    '''
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo '✅ React app is now built and running at http://<your-server-ip>:3000'
+        }
+        failure {
+            echo '❌ Build or deployment failed.'
+        }
     }
 }
 
